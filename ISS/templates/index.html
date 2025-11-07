@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🛰️ Трекер МКС</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS: Теперь без integrity, чтобы избежать ошибок блокировки -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          />
+
+    <style>
+        /* Стили для карты */
+        #mapid { height: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; text-align: center; background-color: #f4f7f9; padding: 20px; }
+        h1 { color: #2c3e50; margin-bottom: 20px; }
+        .coords { font-size: 1.2em; margin-top: 15px; color: #34495e; }
+        .data-box { background: white; padding: 10px; border-radius: 8px; display: inline-block; margin: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <h1>🛰️ Текущее местоположение МКС</h1>
+
+    <div id="mapid"></div>
+
+    <div class="coords">
+        <div class="data-box">Широта: <strong id="iss_lat">Ожидание...</strong></div>
+        <div class="data-box">Долгота: <strong id="iss_lon">Ожидание...</strong></div>
+    </div>
+
+    <!-- Leaflet JavaScript: Теперь без integrity, чтобы избежать ошибок блокировки -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Инициализация карты
+        const map = L.map('mapid').setView([0, 0], 2); // Центр [0, 0], зум 2
+
+        // Добавление тайлов OpenStreetMap (протоколо-независимый URL)
+        L.tileLayer('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Иконка для МКС (протоколо-независимый URL)
+        const issIcon = L.icon({
+            iconUrl: '//upload.wikimedia.org/wikipedia/commons/d/d0/ISS_logo_2016.png', 
+            iconSize: [40, 40], // Размер иконки
+            iconAnchor: [20, 20], // Точка, которая будет соответствовать координатам
+        });
+
+        // Маркер МКС. Изначально устанавливаем его в [0, 0]
+        const issMarker = L.marker([0, 0], { icon: issIcon }).addTo(map);
+
+        // Функция для получения и обновления местоположения
+        function updateISSLocation() {
+            fetch('/iss-location') // Вызов Flask API
+                .then(response => {
+                    if (!response.ok) {
+                        // Эта ветка сработает, если Flask вернет 500
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const lat = parseFloat(data.latitude);
+                    const lon = parseFloat(data.longitude);
+
+                    // 1. Обновить маркер на карте
+                    const newLatLng = L.latLng(lat, lon);
+                    issMarker.setLatLng(newLatLng);
+
+                    // 2. Обновить центр карты, чтобы следовать за МКС (опционально)
+                    // map.panTo(newLatLng, {animate: true, duration: 1}); 
+
+                    // 3. Обновить текстовые координаты
+                    document.getElementById('iss_lat').textContent = lat.toFixed(4);
+                    document.getElementById('iss_lon').textContent = lon.toFixed(4);
+                })
+                .catch(error => {
+                    // Выводит ошибку в консоль браузера
+                    console.error('Ошибка при обновлении местоположения МКС:', error);
+                    document.getElementById('iss_lat').textContent = 'Ошибка';
+                    document.getElementById('iss_lon').textContent = 'Ошибка';
+                });
+        }
+
+        // Вызываем функцию немедленно при загрузке и затем каждые 5 секунд (5000 мс)
+        updateISSLocation();
+        setInterval(updateISSLocation, 5000);
+    </script>
+
+</body>
+</html>
