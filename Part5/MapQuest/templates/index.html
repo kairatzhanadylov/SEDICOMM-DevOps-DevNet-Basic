@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>MapQuest Навигатор</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .result-box { border: 1px solid #ccc; padding: 15px; margin-top: 20px; background-color: #f9f9f9; }
+        .error { color: red; font-weight: bold; }
+        label { display: block; margin-top: 10px; }
+        input[type="text"] { width: 300px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🚗 MapQuest Навигатор</h1>
+
+    <form method="POST">
+        <label for="origin">Начальная точка:</label>
+        <input type="text" id="origin" name="origin" required>
+        
+        <label for="destination">Пункт назначения:</label>
+        <input type="text" id="destination" name="destination" required>
+        
+        <label for="units">Система измерений:</label>
+        <select id="units" name="units">
+            <option value="m">Метрическая (км, литры)</option>
+            <option value="k">Имперская (мили, галлоны)</option>
+        </select>
+        <br>
+        <button type="submit">Найти маршрут</button>
+    </form>
+
+    {% if result %}
+        <div class="result-box">
+            {% if result.error %}
+                <p class="error">Ошибка: {{ result.error }}</p>
+            {% elif result.status == 'success' %}
+                <h2>Маршрут из {{ result.orig }} в {{ result.dest }}</h2>
+                
+                <p><strong>Время в пути:</strong> {{ result.duration }}</p>
+                <p><strong>Расстояние:</strong> {{ "%.2f" | format(result.distance) }} {{ result.unit }}</p>
+                <p><strong>Расход топлива:</strong> {{ "%.2f" | format(result.fuel_used) }} {% if result.unit == 'км' %} литров {% else %} галлонов {% endif %}</p>
+                
+                <h3>Пошаговые инструкции:</h3>
+                <ul>
+                    {% for maneuver in result.maneuvers %}
+                        <li>{{ maneuver.narrative }} ({{ "%.2f" | format(maneuver.distance) }} {{ result.unit }})</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    {% endif %}
+
+</body>
+</html>
